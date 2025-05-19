@@ -30,14 +30,13 @@ def webhook():
 
         update = Update.de_json(update_data, bot)
 
-        # Traitement du message
         try:
-            asyncio.run(application.post_update(update))
+            asyncio.run(application.process_update(update))
             return "OK", 200
         except Exception:
-            print("❌ Erreur post_update :")
+            print("❌ Erreur process_update :")
             traceback.print_exc()
-            return "Erreur post_update", 500
+            return "Erreur traitement", 500
 
     except Exception:
         print("❌ Erreur parsing update :")
