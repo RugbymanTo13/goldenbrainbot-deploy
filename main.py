@@ -12,7 +12,7 @@ telegram_app = ApplicationBuilder().token(BOT_TOKEN).build()
 
 # Commande /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Phase ∞ est prête à te servir.")
+    await update.message.reply_text("Phase ∞ est en ligne et prête à te répondre.")
 
 telegram_app.add_handler(CommandHandler("start", start))
 
@@ -21,7 +21,7 @@ telegram_app.add_handler(CommandHandler("start", start))
 def webhook():
     try:
         update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-        asyncio.get_event_loop().create_task(telegram_app.process_update(update))
+        asyncio.run_coroutine_threadsafe(telegram_app.process_update(update), telegram_app.loop)
         return "OK", 200
     except Exception as e:
         print("❌ Erreur Webhook :", e)
