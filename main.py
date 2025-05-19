@@ -1,32 +1,36 @@
-import os
-import asyncio
-from flask import Flask, request
+import logging
 from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    ContextTypes,
+)
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+BOT_TOKEN = "TON_TOKEN_ICI"
+WEBHOOK_URL = "https://goldenbrainbot-deploy-production.up.railway.app/webhook"
 
-app = Flask(__name__)
-telegram_app = Application.builder().token(BOT_TOKEN).build()
+# Logger
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
-@app.route("/webhook", methods=["POST"])
-async def webhook():
-    if request.method == "POST":
-        update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-        await telegram_app.process_update(update)
-        return "OK"
-    return "Not allowed", 405
-
+# Commande /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Bonjour, Omega∞ est à votre service.")
 
-telegram_app.add_handler(CommandHandler("start", start))
-
+# Fonction principale
 async def main():
-    await telegram_app.initialize()
-    await telegram_app.bot.set_webhook(WEBHOOK_URL)
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    application = Application.builder().token(BOT_TOKEN).build()
+    application.add_handler(CommandHandler("start", start))
+
+    await application.run_webhook(
+        listen="0.0.0.0",
+        port=8080,
+        webhook_url=WEBHOOK_URL,
+    )
 
 if __name__ == "__main__":
+    import asyncio
     asyncio.run(main())
