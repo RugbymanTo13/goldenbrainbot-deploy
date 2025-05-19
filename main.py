@@ -1,10 +1,11 @@
 import os
 import asyncio
+import traceback
 from flask import Flask, request
 from telegram import Update, Bot
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-# Config
+# Config Railway
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 PORT = int(os.environ.get("PORT", 8080))
@@ -20,7 +21,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 application.add_handler(CommandHandler("start", start))
 
-# Route Webhook
+# Route Webhook (avec debug)
 @flask_app.route("/webhook", methods=["POST"])
 def webhook():
     try:
@@ -31,7 +32,8 @@ def webhook():
         )
         return "OK", 200
     except Exception as e:
-        print(f"❌ Erreur Webhook : {e}")
+        print("❌ Erreur Webhook :")
+        traceback.print_exc()
         return "Erreur", 500
 
 # Route GET
