@@ -5,12 +5,12 @@ from flask import Flask, request
 from telegram import Update, Bot
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-# Configuration
+# Config Railway
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 PORT = int(os.environ.get("PORT", 8080))
 
-# Init
+# Init Flask + Telegram
 flask_app = Flask(__name__)
 bot = Bot(token=BOT_TOKEN)
 application = Application.builder().token(BOT_TOKEN).build()
@@ -21,19 +21,30 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 application.add_handler(CommandHandler("start", start))
 
-# Webhook
+# Webhook route avec logs détaillés
 @flask_app.route("/webhook", methods=["POST"])
 def webhook():
     try:
-        update = Update.de_json(request.get_json(force=True), bot)
-        asyncio.run(application.post_update(update))
-        return "OK", 200
-    except Exception as e:
-        print("❌ Erreur Webhook :")
-        traceback.print_exc()
-        return "Erreur", 500
+        update_data = request.get_json(force=True)
+        print("✅ Payload reçu :", update_data)
 
-# Test GET
+        update = Update.de_json(update_data, bot)
+
+        # Traitement du message
+        try:
+            asyncio.run(application.post_update(update))
+            return "OK", 200
+        except Exception:
+            print("❌ Erreur post_update :")
+            traceback.print_exc()
+            return "Erreur post_update", 500
+
+    except Exception:
+        print("❌ Erreur parsing update :")
+        traceback.print_exc()
+        return "Erreur parsing", 500
+
+# Route GET simple
 @flask_app.route("/", methods=["GET"])
 def index():
     return "GoldenBrainBot opérationnel."
