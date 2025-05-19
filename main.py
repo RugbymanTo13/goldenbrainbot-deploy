@@ -1,44 +1,44 @@
 import os
-import asyncio
-from flask import Flask, request
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram.ext import (
+    ApplicationBuilder, CommandHandler, ContextTypes
+)
 
-# ENV vars
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-
-# Crée l'application Telegram
-application = ApplicationBuilder().token(BOT_TOKEN).build()
 
 # Commande /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "🤖 GoldenBrainBot est actif avec Phase ∞ OMEGA∞.\n\n"
-        "Tu recevras automatiquement les alertes IA dès qu’un signal BTC ou OR est détecté."
+        "✅ Bienvenue sur GoldenBrainBot !\n"
+        "L’IA Phase ∞ est prête à t’assister.\n\n"
+        "Commandes disponibles :\n"
+        "/btc — Analyse IA Bitcoin\n"
+        "/or — Analyse IA Or\n"
+        "/alerte — Dernier signal IA\n"
+        "/resume — Vue d’ensemble IA"
     )
 
-application.add_handler(CommandHandler("start", start))
+# Commande par défaut
+async def default(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Test reçu. L'IA Phase ∞ est connectée.")
 
-# Flask app pour recevoir les requêtes Telegram
-flask_app = Flask(__name__)
+def main():
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-@flask_app.post("/webhook")
-def webhook():
-    try:
-        update = Update.de_json(request.get_json(force=True), application.bot)
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("resume", default))
+    app.add_handler(CommandHandler("btc", default))
+    app.add_handler(CommandHandler("or", default))
+    app.add_handler(CommandHandler("alerte", default))
 
-        async def process():
-            await application.initialize()
-            await application.process_update(update)
-
-        asyncio.run(process())
-        return "OK", 200
-
-    except Exception as e:
-        print(f"❌ Erreur Webhook : {e}")
-        return "Error", 500
+    print("🚀 Lancement du bot avec webhook :", WEBHOOK_URL)
+    
+    app.run_webhook(
+        listen="0.0.0.0",
+        port=int(os.getenv("PORT", 8080)),
+        webhook_url=WEBHOOK_URL
+    )
 
 if __name__ == "__main__":
-    print(f"🚀 Lancement du bot avec webhook : {WEBHOOK_URL}")
-    flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    main()
