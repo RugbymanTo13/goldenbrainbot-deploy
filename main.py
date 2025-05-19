@@ -1,38 +1,38 @@
-
 import os
-import logging
+import asyncio
 from flask import Flask, request
 from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
+# Récupération des variables d’environnement
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
+# Initialisation Flask et Telegram
 app = Flask(__name__)
-
-# Configuration de logs
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
-
-# Initialisation du bot Telegram
-telegram_app = Application.builder().token(BOT_TOKEN).build()
+telegram_app = ApplicationBuilder().token(BOT_TOKEN).build()
 
 # Commande /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🤖 GoldenBrainBot Phase ∞ Omega est actif et connecté.")
+    await update.message.reply_text("Phase ∞ est prête à te servir.")
 
+# Ajout des handlers
 telegram_app.add_handler(CommandHandler("start", start))
 
-# Webhook
-@app.route("/webhook", methods=["POST"])
-async def webhook():
-    if request.method == "POST":
+# Route webhook
+@app.post("/webhook")
+def webhook():
+    try:
         update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-        await telegram_app.process_update(update)
+        asyncio.get_event_loop().create_task(telegram_app.process_update(update))
         return "OK", 200
+    except Exception as e:
+        print("❌ Erreur Webhook :", e)
+        return "Erreur Webhook", 500
 
+# Lancement
 if __name__ == "__main__":
-    telegram_app.run_webhook(
-        listen="0.0.0.0",
-        port=int(os.environ.get("PORT", 8080)),
-        webhook_url=WEBHOOK_URL,
-    )
+    asyncio.run(telegram_app.initialize())
+    telegram_app.bot.set_webhook(WEBHOOK_URL)
+    print(f"🚀 Lancement du bot avec webhook : {WEBHOOK_URL}")
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
