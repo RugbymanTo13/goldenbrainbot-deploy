@@ -14,6 +14,7 @@ def main():
     app.add_handler(CommandHandler("start", start))
     
     # Lancement du bot en mode webhook (indispensable pour éviter le 404)
+    print("🚀 Démarrage du bot avec webhook:", WEBHOOK_URL)
     app.run_webhook(
         listen="0.0.0.0",
         port=int(os.environ.get("PORT", 8080)),
