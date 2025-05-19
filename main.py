@@ -4,11 +4,9 @@ from flask import Flask, request
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-# Récupération des variables d’environnement
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
-# Initialisation Flask et Telegram
 app = Flask(__name__)
 telegram_app = ApplicationBuilder().token(BOT_TOKEN).build()
 
@@ -16,10 +14,9 @@ telegram_app = ApplicationBuilder().token(BOT_TOKEN).build()
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Phase ∞ est prête à te servir.")
 
-# Ajout des handlers
 telegram_app.add_handler(CommandHandler("start", start))
 
-# Route webhook
+# Webhook Flask
 @app.post("/webhook")
 def webhook():
     try:
@@ -30,9 +27,12 @@ def webhook():
         print("❌ Erreur Webhook :", e)
         return "Erreur Webhook", 500
 
-# Lancement
-if __name__ == "__main__":
-    asyncio.run(telegram_app.initialize())
-    telegram_app.bot.set_webhook(WEBHOOK_URL)
+# Lancement complet
+async def main():
+    await telegram_app.initialize()
+    await telegram_app.bot.set_webhook(WEBHOOK_URL)
     print(f"🚀 Lancement du bot avec webhook : {WEBHOOK_URL}")
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+
+if __name__ == "__main__":
+    asyncio.run(main())
