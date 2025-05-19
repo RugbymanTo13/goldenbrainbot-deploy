@@ -1,33 +1,37 @@
 import os
 from flask import Flask, request
 from telegram import Update, Bot
-from telegram.ext import Application, CommandHandler, ContextTypes, Dispatcher
+from telegram.ext import Application, CommandHandler, ContextTypes
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+PORT = int(os.environ.get("PORT", 8080))
+
+# Bot + App
 bot = Bot(token=BOT_TOKEN)
+telegram_app = Application.builder().token(BOT_TOKEN).build()
 
-app = Flask(__name__)
-application = Application.builder().token(BOT_TOKEN).build()
+# Flask server
+flask_app = Flask(__name__)
 
-# Commande /start
+# Commande Telegram /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🤖 Bot actif et relié à l'IA Phase ∞.")
 
-application.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CommandHandler("start", start))
 
-# Route webhook réelle
-@app.route("/webhook", methods=["POST"])
+# Route Webhook Telegram
+@flask_app.route("/webhook", methods=["POST"])
 def webhook():
     update = Update.de_json(request.get_json(force=True), bot)
-    application.update_queue.put(update)
+    telegram_app.update_queue.put(update)
     return "OK", 200
 
-# Route GET test
-@app.route("/", methods=["GET"])
+# Route GET de test
+@flask_app.route("/", methods=["GET"])
 def index():
-    return "GoldenBrainBot est en ligne."
+    return "GoldenBrainBot est actif."
 
 if __name__ == "__main__":
-    print("✅ Lancement du bot Flask + Telegram Webhook")
-    application.run_polling(allowed_updates=[])
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    print("🚀 Démarrage Flask + Telegram Webhook :", WEBHOOK_URL)
+    flask_app.run(host="0.0.0.0", port=PORT)
