@@ -5,7 +5,7 @@ from flask import Flask, request
 from telegram import Update, Bot
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-# Config Railway
+# Config
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 PORT = int(os.environ.get("PORT", 8080))
@@ -15,13 +15,13 @@ flask_app = Flask(__name__)
 bot = Bot(token=BOT_TOKEN)
 application = Application.builder().token(BOT_TOKEN).build()
 
-# /start
+# Commande /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🤖 Bot actif et relié à Phase ∞.")
 
 application.add_handler(CommandHandler("start", start))
 
-# Webhook route avec logs détaillés
+# Webhook route avec debug
 @flask_app.route("/webhook", methods=["POST"])
 def webhook():
     try:
@@ -48,10 +48,11 @@ def webhook():
 def index():
     return "GoldenBrainBot opérationnel."
 
-# Lancement
+# Lancement du bot
 if __name__ == "__main__":
     async def run():
         await application.initialize()
+        await application.start()  # <<< ajout indispensable
         print("🚀 Lancement du bot avec webhook :", WEBHOOK_URL)
         flask_app.run(host="0.0.0.0", port=PORT)
 
