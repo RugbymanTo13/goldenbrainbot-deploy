@@ -24,7 +24,9 @@ telegram_app.add_handler(CommandHandler("start", start))
 @flask_app.route("/webhook", methods=["POST"])
 def webhook():
     update = Update.de_json(request.get_json(force=True), bot)
-    telegram_app.update_queue.put(update)
+    # 👇 Fix ici :
+    import asyncio
+    asyncio.create_task(telegram_app.update_queue.put(update))
     return "OK", 200
 
 # Route GET de test
