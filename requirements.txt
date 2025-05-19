@@ -1,2 +1,2 @@
-python-telegram-bot[webhooks]
-requests
+flask
+python-telegram-bot
