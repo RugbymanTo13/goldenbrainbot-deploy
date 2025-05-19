@@ -8,31 +8,27 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
 app = Flask(__name__)
+
 telegram_app = ApplicationBuilder().token(BOT_TOKEN).build()
 
 # Commande /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Phase ∞ est en ligne et prête à te répondre.")
+    await update.message.reply_text("🤖 GoldenBrainBot est en ligne et relié à Phase ∞.")
 
 telegram_app.add_handler(CommandHandler("start", start))
 
-# Webhook Flask
-@app.post("/webhook")
+@app.route("/webhook", methods=["POST"])
 def webhook():
-    try:
-        update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-        asyncio.run_coroutine_threadsafe(telegram_app.process_update(update), telegram_app.loop)
-        return "OK", 200
-    except Exception as e:
-        print("❌ Erreur Webhook :", e)
-        return "Erreur Webhook", 500
-
-# Lancement complet
-async def main():
-    await telegram_app.initialize()
-    await telegram_app.bot.set_webhook(WEBHOOK_URL)
-    print(f"🚀 Lancement du bot avec webhook : {WEBHOOK_URL}")
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    if request.method == "POST":
+        try:
+            update = Update.de_json(request.get_json(force=True), telegram_app.bot)
+            asyncio.run(telegram_app.process_update(update))
+        except Exception as e:
+            print("❌ Erreur Webhook :", e)
+        return "OK"
+    return "Invalid request", 400
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    print(f"🚀 Lancement du bot avec webhook : {WEBHOOK_URL}")
+    telegram_app.bot.set_webhook(WEBHOOK_URL)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
