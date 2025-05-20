@@ -1,57 +1,79 @@
-import asyncio
 import logging
-import os
+import asyncio
 from flask import Flask, request
 from telegram import Update
-from telegram.ext import Application, ApplicationBuilder, CommandHandler, ContextTypes
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    ContextTypes,
+    MessageHandler,
+    filters,
+)
+import os
 
-# === Configuration ===
-TOKEN = os.getenv("BOT_TOKEN", "8111065684:AAELiMg5Kjuj71fPLqSmGk0QNn33VyRazhY")  # À sécuriser !
-WEBHOOK_URL = "https://goldenbrainbot-deploy-production.up.railway.app/webhook"
+# Configuration
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
 
-# === Initialisation ===
-app = Flask(__name__)
+# Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-telegram_app: Application = None  # Global défini dans main()
 
-# === Handler /start ===
+# Flask pour gérer le webhook
+app = Flask(__name__)
+application = None  # Déclaré globalement pour accès dans le webhook
+
+
+# Commande /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        await update.message.reply_text("Bonjour, Omega∞ est prêt à vous assister.")
-    except Exception as e:
-        logger.error(f"[Handler /start] Erreur : {e}")
+    await update.message.reply_text("Bonjour, ici Omega∞ — votre IA connectée.")
 
-# === Webhook endpoint ===
+
+# Commande /help
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Envoyez un message et je répondrai intelligemment.")
+
+
+# Gestion des messages textes
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(f"Omega∞ a bien reçu : « {update.message.text} »")
+
+
+# Gestion des erreurs
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
+    logger.error(f"Erreur détectée : {context.error}")
+    if isinstance(update, Update) and update.message:
+        await update.message.reply_text("Une erreur est survenue, Omega∞ tente de se corriger...")
+
+
+# Initialisation du bot Telegram
+async def main():
+    global application
+
+    application = Application.builder().token(BOT_TOKEN).build()
+
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application.add_error_handler(error_handler)
+
+    await application.bot.set_webhook(WEBHOOK_URL)
+    logging.info(f"🚀 Webhook configuré sur {WEBHOOK_URL}")
+    await application.initialize()
+    await application.start()
+
+
+# Point d'entrée Webhook depuis Telegram
 @app.route("/webhook", methods=["POST"])
 def webhook():
     try:
-        update_data = request.get_json(force=True)
-        update = Update.de_json(update_data, telegram_app.bot)
-        asyncio.get_event_loop().create_task(telegram_app.update_queue.put(update))
-        return "OK", 200
+        update = Update.de_json(request.get_json(force=True), application.bot)
+        asyncio.get_event_loop().create_task(application.update_queue.put(update))
     except Exception as e:
-        logger.exception("[Webhook] Erreur lors du traitement de l'update :")
-        return "Erreur interne", 500
+        logger.exception("Erreur dans le webhook")
+    return "ok"
 
-# === Lancement principal ===
-async def main():
-    global telegram_app
 
-    telegram_app = ApplicationBuilder().token(TOKEN).build()
-    telegram_app.add_handler(CommandHandler("start", start))
-
-    await telegram_app.bot.delete_webhook(drop_pending_updates=True)
-    await telegram_app.bot.set_webhook(url=WEBHOOK_URL)
-    logger.info(f"✅ Webhook configuré sur {WEBHOOK_URL}")
-
-    asyncio.create_task(telegram_app.run_polling())  # fallback polling si webhook inactif
-
-# === Exécution ===
 if __name__ == "__main__":
-    try:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(main())
-        app.run(host="0.0.0.0", port=8080)
-    except Exception as e:
-        logger.exception("[Main] Erreur critique au démarrage :")
+    asyncio.get_event_loop().run_until_complete(main())
+    app.run(host="0.0.0.0", port=8080)
