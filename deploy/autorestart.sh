@@ -1,6 +1,7 @@
 #!/bin/bash
 while true; do
-  docker-compose down
-  docker-compose up --build -d
-  sleep 60
+    echo "🔁 Démarrage de l'application..."
+    docker-compose up --build
+    echo "💥 L'application a crashé. Redémarrage dans 5 secondes..."
+    sleep 5
 done

@@ -1,3 +1,4 @@
 python-telegram-bot[webhooks]==20.8
-Flask==2.3.3
+flask==2.3.3
 httpx==0.26.0
+hypercorn==0.15.0

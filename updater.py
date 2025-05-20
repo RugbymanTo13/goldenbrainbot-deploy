@@ -1,8 +1,7 @@
-def get_decision(text):
-    # Simple example logic
-    if "gold" in text.lower():
-        return "Acheter de l'or 🪙"
-    elif "btc" in text.lower():
-        return "Vendre du Bitcoin ₿"
+def get_decision(message):
+    if "bitcoin" in message.lower():
+        return "📈 Le Bitcoin semble intéressant aujourd’hui."
+    elif "or" in message.lower():
+        return "💰 L'or présente une opportunité."
     else:
-        return "Aucune action recommandée."
+        return "🤖 Je n'ai pas compris, peux-tu reformuler ?"
