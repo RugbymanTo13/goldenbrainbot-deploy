@@ -5,8 +5,11 @@ from telegram.ext import (
     CommandHandler,
     ContextTypes,
 )
+import asyncio
+import os
 
-BOT_TOKEN = "TON_TOKEN_ICI"
+# Configurations
+BOT_TOKEN = os.getenv("BOT_TOKEN", "TON_TOKEN_ICI")
 WEBHOOK_URL = "https://goldenbrainbot-deploy-production.up.railway.app/webhook"
 
 # Logger
@@ -20,17 +23,13 @@ logger = logging.getLogger(__name__)
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Bonjour, Omega∞ est à votre service.")
 
-# Fonction principale
-async def main():
-    application = Application.builder().token(BOT_TOKEN).build()
-    application.add_handler(CommandHandler("start", start))
+# Application Telegram
+application = Application.builder().token(BOT_TOKEN).build()
+application.add_handler(CommandHandler("start", start))
 
-    await application.run_webhook(
-        listen="0.0.0.0",
-        port=8080,
-        webhook_url=WEBHOOK_URL,
-    )
-
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+# Lancement webhook sans asyncio.run
+application.run_webhook(
+    listen="0.0.0.0",
+    port=int(os.getenv("PORT", 8080)),
+    webhook_url=WEBHOOK_URL,
+)
