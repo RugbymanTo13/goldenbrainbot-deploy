@@ -4,7 +4,7 @@ from flask import Flask, request
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-TOKEN = "TON_TOKEN_ICI"
+TOKEN = "8111065684:AAELiMg5Kjuj71fPLqSmGk0QNn33VyRazhY"
 WEBHOOK_URL = "https://goldenbrainbot-deploy-production.up.railway.app/webhook"
 
 # Init bot + Flask
