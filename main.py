@@ -35,7 +35,11 @@ application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_m
 def webhook():
     try:
         update = Update.de_json(request.get_json(force=True), application.bot)
-        asyncio.create_task(application.update_queue.put(update))  # Fonctionne dans thread principal
+
+        # Récupère la boucle principale de l'application Telegram
+        loop = asyncio.get_event_loop()
+        asyncio.run_coroutine_threadsafe(application.update_queue.put(update), loop)
+
         return Response("OK", status=200)
     except Exception as e:
         logger.exception("Erreur dans le webhook")
