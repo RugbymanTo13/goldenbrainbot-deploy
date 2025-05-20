@@ -1,42 +1,57 @@
-import logging
 import asyncio
+import logging
+import os
 from flask import Flask, request
 from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import Application, ApplicationBuilder, CommandHandler, ContextTypes
 
-TOKEN = "8111065684:AAELiMg5Kjuj71fPLqSmGk0QNn33VyRazhY"
+# === Configuration ===
+TOKEN = os.getenv("BOT_TOKEN", "8111065684:AAELiMg5Kjuj71fPLqSmGk0QNn33VyRazhY")  # À sécuriser !
 WEBHOOK_URL = "https://goldenbrainbot-deploy-production.up.railway.app/webhook"
 
-# Init bot + Flask
+# === Initialisation ===
 app = Flask(__name__)
-application = Application.builder().token(TOKEN).build()
-
-# Log
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+telegram_app: Application = None  # Global défini dans main()
 
-# Commande /start
+# === Handler /start ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Bonjour, Omega∞ est à votre service.")
+    try:
+        await update.message.reply_text("Bonjour, Omega∞ est prêt à vous assister.")
+    except Exception as e:
+        logger.error(f"[Handler /start] Erreur : {e}")
 
-application.add_handler(CommandHandler("start", start))
-
-# Route webhook
+# === Webhook endpoint ===
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    update = Update.de_json(request.get_json(force=True), application.bot)
-    loop = asyncio.get_event_loop()
-    loop.create_task(application.update_queue.put(update))
-    return "OK"
+    try:
+        update_data = request.get_json(force=True)
+        update = Update.de_json(update_data, telegram_app.bot)
+        asyncio.get_event_loop().create_task(telegram_app.update_queue.put(update))
+        return "OK", 200
+    except Exception as e:
+        logger.exception("[Webhook] Erreur lors du traitement de l'update :")
+        return "Erreur interne", 500
 
-# Setup Webhook
+# === Lancement principal ===
 async def main():
-    await application.bot.set_webhook(WEBHOOK_URL)
-    logging.info(f"🚀 Webhook configuré sur {WEBHOOK_URL}")
-    await application.initialize()
-    await application.start()
-    await application.updater.start_polling()  # facultatif si tu veux backup polling
+    global telegram_app
 
-# Lancement
+    telegram_app = ApplicationBuilder().token(TOKEN).build()
+    telegram_app.add_handler(CommandHandler("start", start))
+
+    await telegram_app.bot.delete_webhook(drop_pending_updates=True)
+    await telegram_app.bot.set_webhook(url=WEBHOOK_URL)
+    logger.info(f"✅ Webhook configuré sur {WEBHOOK_URL}")
+
+    asyncio.create_task(telegram_app.run_polling())  # fallback polling si webhook inactif
+
+# === Exécution ===
 if __name__ == "__main__":
-    asyncio.get_event_loop().run_until_complete(main())
-    app.run(host="0.0.0.0", port=8080)
+    try:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(main())
+        app.run(host="0.0.0.0", port=8080)
+    except Exception as e:
+        logger.exception("[Main] Erreur critique au démarrage :")
